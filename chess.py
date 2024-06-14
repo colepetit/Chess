@@ -68,7 +68,11 @@ class Square:
                     off_list += [self.Offset(i=pair[0], k=pair[1])]
                 return off_list
             if type(i) is int and type(k) is int:
-                return self.board.board[i + self.Get_i()][k + self.Get_k()]
+                new_i = i + self.Get_i()
+                new_k = k + self.Get_k()
+                if new_i in range(8) and new_k in range(8):
+                    return self.board.board[i + self.Get_i()][k + self.Get_k()]
+                return None
             else:
                 off_list = []
                 if type(i) is not int:
@@ -85,7 +89,7 @@ class Square:
         except:
             return None
 
-class Board:
+class Board: #TODO: add piece list * rework IsCheck func
     def __init__(self, setup=None):
         self.board = []
         for i in range(8):
@@ -128,10 +132,33 @@ class Board:
         i = ord(square[0]) - 97
         k = int(square[1]) - 1
         return self.board[i][k]
+    def GetStr(self, ref):
+        if isinstance(ref, Piece):
+            ref = ref.in_square
+        if not isinstance(ref, Square):
+            return "none"
+        return chr(97+ref.Get_i()) + str(ref.Get_k()+1)
     def GetPiece(self, square):
         return self.GetSquare(square).occ_by
     def MovePiece(self, piece, dest):
         piece.Move(dest)
+    def GetKingLoc(self, color):
+        for i in range(8):
+            for k in range(8):
+                piece = self.board[i][k].occ_by
+                if piece is not None and piece.color == color and piece.name == 'king':
+                    return chr(97+i) + str(k+1)
+        return 'none'
+    def IsCheck(self, color):
+        king_loc = self.GetKingLoc(color)
+        for i in range(8):
+            for k in range(8):
+                piece = self.board[i][k].occ_by
+                if piece is None or piece.color == color: continue
+                if piece.IsLegal(king_loc):
+                    print('Check found by piece in ' + self.GetStr(piece))
+                    return True
+        return False
 
 class Pawn(Piece):
     def __init__(self, color=white):
@@ -223,10 +250,24 @@ class Bishop(Piece):
                     i_ += inc[0]
                     k_ += inc[1]
             if dest_sq in legal_list:
-                return True
-            '''if dest_sq in this_sq.Offset(pairs=pair_list):
-                return True'''
-            '''if dest_sq in this_sq.Offset(i=0, k=range(0 - this_k, 8 - this_k)):
+                return True        
+            return False
+        except:
+            return False
+
+class Queen(Piece):
+    def __init__(self, color=white):
+        super().__init__(color)
+        self.name = 'queen'
+    def IsLegal(self, dest):
+        try:
+            this_sq = self.in_square
+            dest_sq = this_sq.board.GetSquare(dest)
+            if dest_sq.occ_by is not None and dest_sq.occ_by.color == self.color:
+                return False
+            this_i = this_sq.Get_i()
+            this_k = this_sq.Get_k()
+            if dest_sq in this_sq.Offset(i=0, k=range(0 - this_k, 8 - this_k)):
                 k_off = dest_sq.Get_k() - this_k
                 step = 1 if k_off > 0 else -1
                 for sq in this_sq.Offset(i=0, k=range(step, k_off, step)):
@@ -239,15 +280,20 @@ class Bishop(Piece):
                 for sq in this_sq.Offset(i=range(step, i_off, step), k=0):
                     if sq.occ_by is not None:
                         return False
-                return True'''           
+                return True
+            diag_list = []
+            for inc in [[-1, -1], [-1, 1], [1, -1], [1, 1]]:
+                i_ = this_i + inc[0]
+                k_ = this_k + inc[1]
+                while i_ in range(8) and k_ in range(8):
+                    diag_list += [this_sq.board.board[i_][k_]]
+                    i_ += inc[0]
+                    k_ += inc[1]
+            if dest_sq in diag_list:
+                return True   
             return False
         except:
             return False
-
-class Queen(Piece):
-    def __init__(self, color=white):
-        super().__init__(color)
-        self.name = 'queen'
 
 class King(Piece):
     def __init__(self, color=white):
@@ -274,8 +320,14 @@ def Game():
         src, dest = cmd.split(' ')
         piece = b.GetPiece(src)
         if piece.IsLegal(dest):
+            old_loc = b.GetStr(piece)
             b.MovePiece(piece, dest)
+            if b.IsCheck(piece.color):
+                print('Illegal move--into check.\n')
+                b.MovePiece(piece, old_loc)
         else:
             print('Illegal move.\n')
 
+#b = Board('std')
+#print(b.GetStr(b.board[1][0].occ_by))
 Game()
