@@ -1,3 +1,5 @@
+import copy
+
 white = 0
 black = 1
 
@@ -31,10 +33,18 @@ class Piece:
         return s_color + ' ' + s_name
     def Move(self, dest):
         sq = self.in_square.board.GetSquare(dest)
+        if sq.occ_by is not None: sq.RemovePiece(True)
         self.in_square.RemovePiece()
         sq.AddPiece(self)
         self.has_moved = True
+    def CanMove(self, dest):
+        return False
     def IsLegal(self, dest):
+        if not self.CanMove(dest): return False
+        b = copy.deepcopy(self.in_square.board)
+        b.GetPiece(b.GetStr(self)).Move(dest)
+        if b.IsCheck(self.color):
+            return False
         return True
 
 class Square:
@@ -44,12 +54,15 @@ class Square:
         self.name = name
     def __str__(self):
         return self.name
-    def AddPiece(self, occ_piece):
+    def AddPiece(self, occ_piece, list_upd=False):
         self.occ_by = occ_piece
         occ_piece.in_square = self
-    def RemovePiece(self):
+        if list_upd:
+            self.board.pieces += [occ_piece]
+    def RemovePiece(self, list_upd=False):
         if self.occ_by is not None:
             self.occ_by.in_square = None
+            if list_upd: self.board.pieces.remove(self.occ_by)
             self.occ_by = None
     def Get_i(self):
         for i in range(8):
@@ -92,6 +105,7 @@ class Square:
 class Board: #TODO: add piece list * rework IsCheck func
     def __init__(self, setup=None):
         self.board = []
+        self.pieces = []
         for i in range(8):
             self.board += [[]]
             for k in range(8):
@@ -99,21 +113,21 @@ class Board: #TODO: add piece list * rework IsCheck func
                 self.board[i][k].board = self
         if setup == 'std':
             for i in range(8):
-                self.board[i][1].AddPiece(Pawn(white))
-                self.board[i][6].AddPiece(Pawn(black))
+                self.board[i][1].AddPiece(Pawn(white), True)
+                self.board[i][6].AddPiece(Pawn(black), True)
             for i in [0, 7]:
-                self.board[i][0].AddPiece(Rook(white))
-                self.board[i][7].AddPiece(Rook(black))
+                self.board[i][0].AddPiece(Rook(white), True)
+                self.board[i][7].AddPiece(Rook(black), True)
             for i in [1, 6]:
-                self.board[i][0].AddPiece(Knight(white))
-                self.board[i][7].AddPiece(Knight(black))
+                self.board[i][0].AddPiece(Knight(white), True)
+                self.board[i][7].AddPiece(Knight(black), True)
             for i in [2, 5]:
-                self.board[i][0].AddPiece(Bishop(white))
-                self.board[i][7].AddPiece(Bishop(black))
-            self.board[3][0].AddPiece(Queen(white))
-            self.board[3][7].AddPiece(Queen(black))
-            self.board[4][0].AddPiece(King(white))
-            self.board[4][7].AddPiece(King(black))
+                self.board[i][0].AddPiece(Bishop(white), True)
+                self.board[i][7].AddPiece(Bishop(black), True)
+            self.board[3][0].AddPiece(Queen(white), True)
+            self.board[3][7].AddPiece(Queen(black), True)
+            self.board[4][0].AddPiece(King(white), True)
+            self.board[4][7].AddPiece(King(black), True)
     def __str__(self):
         pic = ''
         for k in range(7, -1, -1):
@@ -151,20 +165,31 @@ class Board: #TODO: add piece list * rework IsCheck func
         return 'none'
     def IsCheck(self, color):
         king_loc = self.GetKingLoc(color)
-        for i in range(8):
-            for k in range(8):
-                piece = self.board[i][k].occ_by
-                if piece is None or piece.color == color: continue
-                if piece.IsLegal(king_loc):
-                    print('Check found by piece in ' + self.GetStr(piece))
-                    return True
+        for piece in self.pieces:
+            if piece is None or piece.color == color: continue
+            if piece.CanMove(king_loc):
+                return True
         return False
+    def Nomen(self, cmd, turn):
+        dest = cmd[-2:]
+        if len(cmd) == 2:
+            prev = -1 if turn == white else 1
+            prev_piece = self.GetSquare(dest).Offset(i=prev).occ_by
+            if prev_piece is not None and prev_piece.name == 'pawn' and prev_piece.color == turn:
+                if prev_piece.CanMove(dest):
+                    pass # pawn advance
+        if cmd[0] in ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']:
+            if len(cmd) != 4 or cmd[1] != 'x':
+                return False
+            # pawn capture
+        tomove = cmd[0]
+        # move
 
 class Pawn(Piece):
     def __init__(self, color=white):
         super().__init__(color)
         self.name = 'pawn'
-    def IsLegal(self, dest):
+    def CanMove(self, dest):
         try:
             this_sq = self.in_square
             dest_sq = this_sq.board.GetSquare(dest)
@@ -187,7 +212,7 @@ class Rook(Piece):
     def __init__(self, color=white):
         super().__init__(color)
         self.name = 'rook'
-    def IsLegal(self, dest):
+    def CanMove(self, dest):
         try:
             this_sq = self.in_square
             dest_sq = this_sq.board.GetSquare(dest)
@@ -217,7 +242,7 @@ class Knight(Piece):
     def __init__(self, color=white):
         super().__init__(color)
         self.name = 'knight'
-    def IsLegal(self, dest):
+    def CanMove(self, dest):
         try:
             this_sq = self.in_square
             dest_sq = this_sq.board.GetSquare(dest)
@@ -233,7 +258,7 @@ class Bishop(Piece):
     def __init__(self, color=white):
         super().__init__(color)
         self.name = 'bishop'
-    def IsLegal(self, dest):
+    def CanMove(self, dest):
         try:
             this_sq = self.in_square
             dest_sq = this_sq.board.GetSquare(dest)
@@ -246,7 +271,9 @@ class Bishop(Piece):
                 i_ = this_i + inc[0]
                 k_ = this_k + inc[1]
                 while i_ in range(8) and k_ in range(8):
-                    legal_list += [this_sq.board.board[i_][k_]]
+                    new_square = this_sq.board.board[i_][k_]
+                    legal_list += [new_square]
+                    if new_square.occ_by is not None: break
                     i_ += inc[0]
                     k_ += inc[1]
             if dest_sq in legal_list:
@@ -259,7 +286,7 @@ class Queen(Piece):
     def __init__(self, color=white):
         super().__init__(color)
         self.name = 'queen'
-    def IsLegal(self, dest):
+    def CanMove(self, dest):
         try:
             this_sq = self.in_square
             dest_sq = this_sq.board.GetSquare(dest)
@@ -286,7 +313,9 @@ class Queen(Piece):
                 i_ = this_i + inc[0]
                 k_ = this_k + inc[1]
                 while i_ in range(8) and k_ in range(8):
-                    diag_list += [this_sq.board.board[i_][k_]]
+                    new_square = this_sq.board.board[i_][k_]
+                    diag_list += [new_square]
+                    if new_square.occ_by is not None: break
                     i_ += inc[0]
                     k_ += inc[1]
             if dest_sq in diag_list:
@@ -299,7 +328,7 @@ class King(Piece):
     def __init__(self, color=white):
         super().__init__(color)
         self.name = 'king'
-    def IsLegal(self, dest):
+    def CanMove(self, dest):
         try:
             this_sq = self.in_square
             dest_sq = this_sq.board.GetSquare(dest)
@@ -320,11 +349,7 @@ def Game():
         src, dest = cmd.split(' ')
         piece = b.GetPiece(src)
         if piece.IsLegal(dest):
-            old_loc = b.GetStr(piece)
             b.MovePiece(piece, dest)
-            if b.IsCheck(piece.color):
-                print('Illegal move--into check.\n')
-                b.MovePiece(piece, old_loc)
         else:
             print('Illegal move.\n')
 
