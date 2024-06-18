@@ -37,6 +37,7 @@ class Piece:
         self.in_square.RemovePiece()
         sq.AddPiece(self)
         self.has_moved = True
+        sq.board.turn = black if self.color == white else white
     def CanMove(self, dest):
         return False
     def IsLegal(self, dest):
@@ -102,10 +103,11 @@ class Square:
         except:
             return None
 
-class Board: #TODO: add piece list * rework IsCheck func
+class Board: 
     def __init__(self, setup=None):
         self.board = []
         self.pieces = []
+        self.turn = white
         for i in range(8):
             self.board += [[]]
             for k in range(8):
@@ -142,6 +144,23 @@ class Board: #TODO: add piece list * rework IsCheck func
                     pic += '  '
             pic += '\n'
         return pic
+    def Show(self):
+        if self.turn == white:
+            print(self)
+        else:
+            pic = ''
+            for k in range(8):
+                for i in range(7, -1, -1):
+                    piece = self.board[i][k].occ_by
+                    if piece is not None:
+                        p_name = ctos(piece.color) + '_' + piece.name
+                        pic += globals()[p_name] + ' '
+                    elif (i + k) % 2 == 1:
+                        pic += '\u2610 '
+                    else:
+                        pic += '  '
+                pic += '\n'
+            print(pic)
     def GetSquare(self, square):
         i = ord(square[0]) - 97
         k = int(square[1]) - 1
@@ -170,12 +189,12 @@ class Board: #TODO: add piece list * rework IsCheck func
             if piece.CanMove(king_loc):
                 return True
         return False
-    def Nomen(self, cmd, turn):
+    def Nomen(self, cmd):
         dest = cmd[-2:]
         if len(cmd) == 2:
-            prev = -1 if turn == white else 1
+            prev = -1 if self.turn == white else 1
             prev_piece = self.GetSquare(dest).Offset(i=prev).occ_by
-            if prev_piece is not None and prev_piece.name == 'pawn' and prev_piece.color == turn:
+            if prev_piece is not None and prev_piece.name == 'pawn' and prev_piece.color == self.turn:
                 if prev_piece.CanMove(dest):
                     pass # pawn advance
         if cmd[0] in ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']:
@@ -344,7 +363,7 @@ def Game():
     b = Board('std')
     while 1:
         print('\n')
-        print(b)
+        b.Show()
         cmd = input('move:')
         src, dest = cmd.split(' ')
         piece = b.GetPiece(src)
