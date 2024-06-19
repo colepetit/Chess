@@ -196,7 +196,15 @@ class Board:
             prev_piece = self.GetSquare(dest).Offset(i=prev).occ_by
             if prev_piece is not None and prev_piece.name == 'pawn' and prev_piece.color == self.turn:
                 if prev_piece.CanMove(dest):
-                    pass # pawn advance
+                    prev_piece.move(dest)
+                    return True
+            elif prev_piece is None:
+                prev_piece = self.GetSquare(dest).Offset(i=prev*2).occ_by
+                if prev_piece is not None and prev_piece.name == 'pawn' and prev_piece.color == self.turn:
+                    if prev_piece.CanMove(dest):
+                        prev_piece.move(dest)
+                        return True
+            return False
         if cmd[0] in ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']:
             if len(cmd) != 4 or cmd[1] != 'x':
                 return False
@@ -365,12 +373,8 @@ def Game():
         print('\n')
         b.Show()
         cmd = input('move:')
-        src, dest = cmd.split(' ')
-        piece = b.GetPiece(src)
-        if piece.IsLegal(dest):
-            b.MovePiece(piece, dest)
-        else:
-            print('Illegal move.\n')
+        if not b.Nomen(cmd):
+            print('Returned False')
 
 #b = Board('std')
 #print(b.GetStr(b.board[1][0].occ_by))
