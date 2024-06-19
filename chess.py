@@ -108,6 +108,7 @@ class Board:
         self.board = []
         self.pieces = []
         self.turn = white
+        self.moves = []
         for i in range(8):
             self.board += [[]]
             for k in range(8):
@@ -190,25 +191,55 @@ class Board:
                 return True
         return False
     def Nomen(self, cmd):
-        dest = cmd[-2:]
+        try:
+            dest = cmd[-2:]
+        except:
+            return False
         if len(cmd) == 2:
-            prev = -1 if self.turn == white else 1
-            prev_piece = self.GetSquare(dest).Offset(i=prev).occ_by
-            if prev_piece is not None and prev_piece.name == 'pawn' and prev_piece.color == self.turn:
-                if prev_piece.CanMove(dest):
-                    prev_piece.move(dest)
-                    return True
-            elif prev_piece is None:
-                prev_piece = self.GetSquare(dest).Offset(i=prev*2).occ_by
+            try:
+                prev = -1 if self.turn == white else 1
+                prev_piece = self.GetSquare(dest).Offset(k=prev).occ_by
                 if prev_piece is not None and prev_piece.name == 'pawn' and prev_piece.color == self.turn:
                     if prev_piece.CanMove(dest):
-                        prev_piece.move(dest)
+                        prev_piece.Move(dest)
+                        self.moves += [cmd]
                         return True
-            return False
+                elif prev_piece is None:
+                    prev_piece = self.GetSquare(dest).Offset(k=prev*2).occ_by
+                    if prev_piece is not None and prev_piece.name == 'pawn' and prev_piece.color == self.turn and not prev_piece.has_moved:
+                        if prev_piece.CanMove(dest):
+                            prev_piece.Move(dest)
+                            self.moves += [cmd]
+                            prev_piece.double = len(self.moves)
+                            return True
+                return False
+            except:
+                return False
         if cmd[0] in ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']:
             if len(cmd) != 4 or cmd[1] != 'x':
                 return False
-            # pawn capture
+            try:
+                prev = -1 if self.turn == white else 1
+                if self.GetSquare(dest).occ_by is None:
+                    to_passant = self.GetSquare(dest).Offset(k=prev).occ_by
+                    if to_passant is None or to_passant.color == self.turn or not isinstance(to_passant, Pawn): return False
+                    #print()
+                    if to_passant.double != len(self.moves): return False
+                    captor = None
+                    for i_off in [-1, 1]:
+                        capt_sq = to_passant.Offset(i=i_off)
+                        if capt_sq is None or capt_sq.occ_by is None: continue
+                        if capt_sq.occ_by.color == self.turn and isinstance(capt_sq.occ_by, Pawn) and capt_sq.name[0] == cmd[0]:
+                            captor = capt_sq.occ_by
+                            break
+                    if captor is None:
+                        return False
+                    captor.Move(dest)
+                    to_passant.RemovePiece(True)
+                    self.moves += [cmd]
+                    return True
+            except:
+                return False
         tomove = cmd[0]
         # move
 
@@ -216,6 +247,7 @@ class Pawn(Piece):
     def __init__(self, color=white):
         super().__init__(color)
         self.name = 'pawn'
+        self.double = None
     def CanMove(self, dest):
         try:
             this_sq = self.in_square
