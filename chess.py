@@ -196,25 +196,7 @@ class Board:
         except:
             return False
         if len(cmd) == 2:
-            try:
-                prev = -1 if self.turn == white else 1
-                prev_piece = self.GetSquare(dest).Offset(k=prev).occ_by
-                if prev_piece is not None and prev_piece.name == 'pawn' and prev_piece.color == self.turn:
-                    if prev_piece.CanMove(dest):
-                        prev_piece.Move(dest)
-                        self.moves += [cmd]
-                        return True
-                elif prev_piece is None:
-                    prev_piece = self.GetSquare(dest).Offset(k=prev*2).occ_by
-                    if prev_piece is not None and prev_piece.name == 'pawn' and prev_piece.color == self.turn and not prev_piece.has_moved:
-                        if prev_piece.CanMove(dest):
-                            prev_piece.Move(dest)
-                            self.moves += [cmd]
-                            prev_piece.double = len(self.moves)
-                            return True
-                return False
-            except:
-                return False
+            return self.PawnAdvance(cmd)
         if cmd[0] in ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']:
             if len(cmd) != 4 or cmd[1] != 'x':
                 return False
@@ -248,6 +230,27 @@ class Board:
                 return False
         tomove = cmd[0]
         # move
+    def PawnAdvance(self, cmd):
+        try:
+            dest = cmd
+            prev = -1 if self.turn == white else 1
+            prev_piece = self.GetSquare(dest).Offset(k=prev).occ_by
+            if prev_piece is not None and prev_piece.name == 'pawn' and prev_piece.color == self.turn:
+                if prev_piece.CanMove(dest):
+                    prev_piece.Move(dest)
+                    self.moves += [cmd]
+                    return True
+            elif prev_piece is None:
+                prev_piece = self.GetSquare(dest).Offset(k=prev*2).occ_by
+                if prev_piece is not None and prev_piece.name == 'pawn' and prev_piece.color == self.turn and not prev_piece.has_moved:
+                    if prev_piece.CanMove(dest):
+                        prev_piece.Move(dest)
+                        self.moves += [cmd]
+                        prev_piece.double = len(self.moves)
+                        return True
+            return False
+        except:
+            return False
 
 class Pawn(Piece):
     def __init__(self, color=white):
