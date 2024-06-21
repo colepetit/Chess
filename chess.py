@@ -219,21 +219,27 @@ class Board:
             if len(cmd) != 4 or cmd[1] != 'x':
                 return False
             try:
+                #print('branch pawn capture')
                 prev = -1 if self.turn == white else 1
                 if self.GetSquare(dest).occ_by is None:
+                    #print('branch try passant')
                     to_passant = self.GetSquare(dest).Offset(k=prev).occ_by
                     if to_passant is None or to_passant.color == self.turn or not isinstance(to_passant, Pawn): return False
-                    #print()
+                    #print('to_passant found')
                     if to_passant.double != len(self.moves): return False
+                    #print('to_passant valid')
                     captor = None
                     for i_off in [-1, 1]:
-                        capt_sq = to_passant.Offset(i=i_off)
+                        #print(f'checking {i_off}')
+                        capt_sq = to_passant.in_square.Offset(i=i_off)
                         if capt_sq is None or capt_sq.occ_by is None: continue
+                        #print('capt_sq occupied')
                         if capt_sq.occ_by.color == self.turn and isinstance(capt_sq.occ_by, Pawn) and capt_sq.name[0] == cmd[0]:
                             captor = capt_sq.occ_by
                             break
                     if captor is None:
                         return False
+                    #print('captor found')
                     captor.Move(dest)
                     to_passant.RemovePiece(True)
                     self.moves += [cmd]
