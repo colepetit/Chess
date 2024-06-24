@@ -21,6 +21,9 @@ def ctos(col_num):
     elif col_num == 1: return 'black'
     else: return '<color error>'
 
+class FIXME(Exception):
+    pass
+
 class Piece:
     def __init__(self, color=white):
         self.name = None
@@ -195,6 +198,8 @@ class Board:
             return self.PawnAdvance(cmd)
         if cmd[0] in ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']:
             return self.PawnCapture(cmd)
+        if cmd[0] == 'Q':
+            return self.QueenMove(cmd)
         return False
         # move
     def PawnAdvance(self, cmd):
@@ -271,6 +276,31 @@ class Board:
                 self.moves += [cmd]
                 return True
             return False
+        except:
+            return False
+    def QueenMove(self, cmd):
+        try:
+            dest = cmd[-2:]
+            spec = cmd[2:-2] if cmd[1] == 'x' else cmd[1:-2]
+            capt = True if cmd[1] == 'x' else False
+            if capt and self.GetSquare(dest).occ_by is None: return False
+            if not capt and self.GetSquare(dest).occ_by is not None: return False
+            queen = None
+            for i in range(len(self.pieces)):
+                if self.pieces[i].color == self.turn and isinstance(self.pieces[i], Queen):
+                    if queen is None:
+                        queen = self.pieces[i]
+                    else:
+                        raise FIXME()
+            if queen is None: return False
+            if queen.IsLegal(dest):
+                if capt: self.GetSquare(dest).RemovePiece(True)
+                queen.Move(dest)
+                self.moves += [cmd]
+                return True
+            return False
+        except FIXME:
+            print('FIXME: multiple queens found')
         except:
             return False
 
