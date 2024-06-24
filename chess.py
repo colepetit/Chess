@@ -282,6 +282,7 @@ class Board:
         try:
             dest = cmd[-2:]
             spec = cmd[2:-2] if cmd[1] == 'x' else cmd[1:-2]
+            if spec != '': raise FIXME('FIXME: specification')
             capt = True if cmd[1] == 'x' else False
             if capt and self.GetSquare(dest).occ_by is None: return False
             if not capt and self.GetSquare(dest).occ_by is not None: return False
@@ -291,7 +292,7 @@ class Board:
                     if queen is None:
                         queen = self.pieces[i]
                     else:
-                        raise FIXME()
+                        raise FIXME('FIXME: multiple queens found')
             if queen is None: return False
             if queen.IsLegal(dest):
                 if capt: self.GetSquare(dest).RemovePiece(True)
@@ -299,11 +300,10 @@ class Board:
                 self.moves += [cmd]
                 return True
             return False
-        except FIXME:
-            print('FIXME: multiple queens found')
+        except FIXME as f:
+            print(f)
         except:
             return False
-
 
 class Pawn(Piece):
     def __init__(self, color=white):
