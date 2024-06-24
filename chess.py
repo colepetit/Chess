@@ -203,14 +203,14 @@ class Board:
             prev = -1 if self.turn == white else 1
             prev_piece = self.GetSquare(dest).Offset(k=prev).occ_by
             if prev_piece is not None and prev_piece.name == 'pawn' and prev_piece.color == self.turn:
-                if prev_piece.CanMove(dest):
+                if prev_piece.IsLegal(dest):
                     prev_piece.Move(dest)
                     self.moves += [cmd]
                     return True
             elif prev_piece is None:
                 prev_piece = self.GetSquare(dest).Offset(k=prev*2).occ_by
                 if prev_piece is not None and prev_piece.name == 'pawn' and prev_piece.color == self.turn and not prev_piece.has_moved:
-                    if prev_piece.CanMove(dest):
+                    if prev_piece.IsLegal(dest):
                         prev_piece.Move(dest)
                         self.moves += [cmd]
                         prev_piece.double = len(self.moves)
@@ -244,10 +244,12 @@ class Board:
                 if captor is None:
                     return False
                 print('captor found')
-                captor.Move(dest)
-                to_passant.in_square.RemovePiece(True)
-                self.moves += [cmd]
-                return True
+                if captor.IsLegal(dest):
+                    captor.Move(dest)
+                    to_passant.in_square.RemovePiece(True)
+                    self.moves += [cmd]
+                    return True
+                return False
             to_capt = self.GetSquare(dest).occ_by
             print('branch not passant')
             if to_capt.color == self.turn: return False
@@ -262,11 +264,13 @@ class Board:
                     break
             if captor is None: return False
             print('captor found')
-            to_capt.in_square.RemovePiece(True)
-            print('to_capt removed')
-            captor.Move(dest)
-            self.moves += [cmd]
-            return True
+            if captor.IsLegal(dest):
+                to_capt.in_square.RemovePiece(True)
+                print('to_capt removed')
+                captor.Move(dest)
+                self.moves += [cmd]
+                return True
+            return False
         except:
             return False
 
@@ -290,6 +294,8 @@ class Pawn(Piece):
             if dest_sq == this_sq.Offset(k=inc):
                 return True
             if dest_sq == this_sq.Offset(k=inc*2) and this_sq.Offset(k=inc).occ_by == None and not this_sq.occ_by.has_moved:
+                return True
+            if dest_sq in this_sq.Offset(i=[-1, 1], k=inc): # FIXME need more specific passant validity checking
                 return True
             return False
         except:
