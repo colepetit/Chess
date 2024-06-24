@@ -191,44 +191,11 @@ class Board:
                 return True
         return False
     def Nomen(self, cmd):
-        try:
-            dest = cmd[-2:]
-        except:
-            return False
         if len(cmd) == 2:
             return self.PawnAdvance(cmd)
         if cmd[0] in ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']:
-            if len(cmd) != 4 or cmd[1] != 'x':
-                return False
-            try:
-                #print('branch pawn capture')
-                prev = -1 if self.turn == white else 1
-                if self.GetSquare(dest).occ_by is None:
-                    #print('branch try passant')
-                    to_passant = self.GetSquare(dest).Offset(k=prev).occ_by
-                    if to_passant is None or to_passant.color == self.turn or not isinstance(to_passant, Pawn): return False
-                    #print('to_passant found')
-                    if to_passant.double != len(self.moves): return False
-                    #print('to_passant valid')
-                    captor = None
-                    for i_off in [-1, 1]:
-                        #print(f'checking {i_off}')
-                        capt_sq = to_passant.in_square.Offset(i=i_off)
-                        if capt_sq is None or capt_sq.occ_by is None: continue
-                        #print('capt_sq occupied')
-                        if capt_sq.occ_by.color == self.turn and isinstance(capt_sq.occ_by, Pawn) and capt_sq.name[0] == cmd[0]:
-                            captor = capt_sq.occ_by
-                            break
-                    if captor is None:
-                        return False
-                    #print('captor found')
-                    captor.Move(dest)
-                    to_passant.RemovePiece(True)
-                    self.moves += [cmd]
-                    return True
-            except:
-                return False
-        tomove = cmd[0]
+            return self.PawnCapture(cmd)
+        return False
         # move
     def PawnAdvance(self, cmd):
         try:
@@ -251,6 +218,58 @@ class Board:
             return False
         except:
             return False
+    def PawnCapture(self, cmd):
+        if len(cmd) != 4 or cmd[1] != 'x':
+            return False
+        try:
+            dest = cmd[-2:]
+            print('branch pawn capture')
+            prev = -1 if self.turn == white else 1
+            if self.GetSquare(dest).occ_by is None:
+                print('branch try passant')
+                to_passant = self.GetSquare(dest).Offset(k=prev).occ_by
+                if to_passant is None or to_passant.color == self.turn or not isinstance(to_passant, Pawn): return False
+                print('to_passant found')
+                if to_passant.double != len(self.moves): return False
+                print('to_passant valid')
+                captor = None
+                for i_off in [-1, 1]:
+                    print(f'checking {i_off}')
+                    capt_sq = to_passant.in_square.Offset(i=i_off)
+                    if capt_sq is None or capt_sq.occ_by is None: continue
+                    print('capt_sq occupied')
+                    if capt_sq.occ_by.color == self.turn and isinstance(capt_sq.occ_by, Pawn) and capt_sq.name[0] == cmd[0]:
+                        captor = capt_sq.occ_by
+                        break
+                if captor is None:
+                    return False
+                print('captor found')
+                captor.Move(dest)
+                to_passant.in_square.RemovePiece(True)
+                self.moves += [cmd]
+                return True
+            to_capt = self.GetSquare(dest).occ_by
+            print('branch not passant')
+            if to_capt.color == self.turn: return False
+            captor = None
+            for i_off in [-1, 1]:
+                print(f'checking {i_off}')
+                capt_sq = to_capt.in_square.Offset(i=i_off, k=prev)
+                if capt_sq is None or capt_sq.occ_by is None: continue
+                print('capt_sq occupied')
+                if capt_sq.occ_by.color == self.turn and isinstance(capt_sq.occ_by, Pawn) and capt_sq.name[0] == cmd[0]:
+                    captor = capt_sq.occ_by
+                    break
+            if captor is None: return False
+            print('captor found')
+            to_capt.in_square.RemovePiece(True)
+            print('to_capt removed')
+            captor.Move(dest)
+            self.moves += [cmd]
+            return True
+        except:
+            return False
+
 
 class Pawn(Piece):
     def __init__(self, color=white):
