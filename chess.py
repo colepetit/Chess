@@ -304,6 +304,29 @@ class Board:
             print(f)
         except:
             return False
+    def KnightMove(self, cmd):
+        try:
+            dest = cmd[-2:]
+            dest_sq = self.GetSquare(dest)
+            spec = cmd[2:-2] if cmd[1] == 'x' else cmd[1:-2]
+            capt = True if cmd == 'x' else False
+            if capt and dest_sq.occ_by is None: return False
+            if not capt and self.GetSquare(dest).occ_by is not None: return False
+            knight_list = []
+            for sq in dest_sq.Offset(i=[-1, 1], k=[-2, 2]) + dest_sq.Offset(i=[-2, 2], k=[-1, 1]):
+                if sq is not None and sq.occ_by is not None and sq.occ_by.color == self.turn and isinstance(sq.occ_by, Knight):
+                    if spec == '': knight_list += [sq]
+                    elif len(spec) == 1:
+                        try:
+                            if str(sq.Get_k() + 1) == spec or sq.Get_i() + 97 == ord(spec):
+                                knight_list += [sq]
+                        except TypeError:
+                            continue
+                    elif len(spec) == 2:
+                        if self.GetSquare(spec) == sq:
+                            knight_list += sq
+        except:
+            return False
 
 class Pawn(Piece):
     def __init__(self, color=white):
