@@ -200,6 +200,8 @@ class Board:
             return self.PawnCapture(cmd)
         if cmd[0] == 'Q':
             return self.QueenMove(cmd)
+        if cmd[0] == 'N':
+            return self.KnightMove(cmd)
         return False
         # move
     def PawnAdvance(self, cmd):
@@ -281,9 +283,9 @@ class Board:
     def QueenMove(self, cmd):
         try:
             dest = cmd[-2:]
-            spec = cmd[2:-2] if cmd[1] == 'x' else cmd[1:-2]
-            if spec != '': raise FIXME('FIXME: specification')
             capt = True if cmd[1] == 'x' else False
+            spec = cmd[2:-2] if capt == 'x' else cmd[1:-2]
+            if spec != '': raise FIXME('FIXME: specification')
             if capt and self.GetSquare(dest).occ_by is None: return False
             if not capt and self.GetSquare(dest).occ_by is not None: return False
             queen = None
@@ -308,23 +310,30 @@ class Board:
         try:
             dest = cmd[-2:]
             dest_sq = self.GetSquare(dest)
-            spec = cmd[2:-2] if cmd[1] == 'x' else cmd[1:-2]
-            capt = True if cmd == 'x' else False
+            capt = True if cmd[1] == 'x' else False
+            spec = cmd[2:-2] if capt else cmd[1:-2]
             if capt and dest_sq.occ_by is None: return False
             if not capt and self.GetSquare(dest).occ_by is not None: return False
             knight_list = []
             for sq in dest_sq.Offset(i=[-1, 1], k=[-2, 2]) + dest_sq.Offset(i=[-2, 2], k=[-1, 1]):
                 if sq is not None and sq.occ_by is not None and sq.occ_by.color == self.turn and isinstance(sq.occ_by, Knight):
-                    if spec == '': knight_list += [sq]
+                    if spec == '': knight_list += [sq.occ_by]
                     elif len(spec) == 1:
                         try:
                             if str(sq.Get_k() + 1) == spec or sq.Get_i() + 97 == ord(spec):
-                                knight_list += [sq]
+                                knight_list += [sq.occ_by]
                         except TypeError:
                             continue
                     elif len(spec) == 2:
-                        if self.GetSquare(spec) == sq:
-                            knight_list += sq
+                        if self.GetSquare(spec) == sq.occ_by:
+                            knight_list += sq.occ_by
+            if len(knight_list) != 1: return False
+            knight = knight_list[0]
+            if knight.IsLegal(dest):
+                if capt: self.GetSquare(dest).RemovePiece(True)
+                knight.Move(dest)
+                self.moves += [cmd]
+                return True
         except:
             return False
 
