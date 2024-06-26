@@ -285,16 +285,30 @@ class Board:
             dest = cmd[-2:]
             capt = True if cmd[1] == 'x' else False
             spec = cmd[2:-2] if capt == 'x' else cmd[1:-2]
-            if spec != '': raise FIXME('FIXME: specification')
+            #if spec != '': raise FIXME('FIXME: specification')
             if capt and self.GetSquare(dest).occ_by is None: return False
             if not capt and self.GetSquare(dest).occ_by is not None: return False
             queen = None
-            for i in range(len(self.pieces)):
-                if self.pieces[i].color == self.turn and isinstance(self.pieces[i], Queen):
-                    if queen is None:
-                        queen = self.pieces[i]
-                    else:
-                        raise FIXME('FIXME: multiple queens found')
+            for piece in self.pieces:
+                if piece.color == self.turn and isinstance(piece, Queen):
+                    if spec == '':
+                        if queen is None:
+                            queen = piece
+                        else:
+                            raise FIXME('FIXME: multiple queens found')
+                    elif len(spec) == 1:
+                        if str(piece.in_square.Get_k() + 1) == spec or piece.in_square.Get_i() + 97 == ord(spec):
+                            if queen is None:
+                                queen = piece
+                            else:
+                                raise FIXME('FIXME: multiple queens found')
+                    elif len(spec) == 2:
+                        if self.GetSquare(dest) == piece.in_square:
+                            if queen is None:
+                                queen = piece
+                            else:
+                                raise FIXME('FIXME: multiple queens found')
+                    else: return False
             if queen is None: return False
             if queen.IsLegal(dest):
                 if capt: self.GetSquare(dest).RemovePiece(True)
@@ -304,6 +318,7 @@ class Board:
             return False
         except FIXME as f:
             print(f)
+            return False
         except:
             return False
     def KnightMove(self, cmd):
