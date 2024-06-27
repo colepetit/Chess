@@ -35,7 +35,11 @@ class Piece:
         s_color = ctos(self.color) if self.color is not None else '<no color>'
         return s_color + ' ' + s_name
     def Move(self, dest):
-        sq = self.in_square.board.GetSquare(dest)
+        if isinstance(dest, str):
+            sq = self.in_square.board.GetSquare(dest)
+        elif isinstance(dest, Square):
+            sq = dest
+        else: raise TypeError()
         if sq.occ_by is not None: sq.RemovePiece(True)
         self.in_square.RemovePiece()
         sq.AddPiece(self)
@@ -202,6 +206,8 @@ class Board:
             return self.QueenMove(cmd)
         if cmd[0] == 'N':
             return self.KnightMove(cmd)
+        if cmd[0] == 'K':
+            return self.KingMove(cmd)
         return False
         # move
     def PawnAdvance(self, cmd):
@@ -349,6 +355,47 @@ class Board:
                 knight.Move(dest)
                 self.moves += [cmd]
                 return True
+            return False
+        except:
+            return False
+    def KingMove(self, cmd):
+        try:
+            dest = cmd[-2:]
+            dest_sq = self.GetSquare(dest)
+            capt = True if cmd[1] == 'x' else False
+            spec = cmd[2:-2] if capt else cmd[1:-2]
+            if capt and dest_sq.occ_by is None: return False
+            if not capt and self.GetSquare(dest).occ_by is not None: return False
+            king = self.GetPiece(self.GetKingLoc(self.turn))
+            if king.IsLegal(dest):
+                if capt: dest_sq.RemovePiece(True)
+                self.moves += [cmd]
+                king.Move(dest)
+                return True
+            return False
+        except:
+            return False
+    def Castle(self, cmd):
+        try:
+            if cmd == 'O-O': kingside = True
+            elif cmd == 'O-O-O': kingside = False
+            else: return False
+            king = self.GetPiece(self.GetKingLoc(self.turn))
+            if king.has_moved: return False
+            i_off = 3 if kingside else -4
+            rook_sq = king.in_square.Offset(i=i_off)
+            if rook_sq is None: return False
+            rook = rook_sq.occ_by
+            if not isinstance(rook, Rook) or rook.color != self.turn or rook.has_moved: return False
+            check_range = range(1, 3) if kingside else range(-3, 0)
+            for sq in king.in_square.Offset(i=check_range):
+                if sq.occ_by is not None: return False
+            king_off = 2 if kingside else -2
+            rook_off = -2 if kingside else 3
+            king.Move(king.Offset(i=king_off))
+            rook.Move(rook.Offset(i=rook_off))
+            self.moves += [cmd]
+            return True
         except:
             return False
 
